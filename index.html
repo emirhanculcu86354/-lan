@@ -12,7 +12,7 @@
 <header class="bas">
   <div class="bas-ic">
     <a class="logo" href="./"><img src="ikon-192.png" width="28" height="28" alt="">İlan Röntgeni</a>
-    <input id="ara" type="search" placeholder="Model, paket, yıl ara: Megane Touch 2022" aria-label="İlan ara">
+    <form id="ust-ara" class="ust-ara" role="search"><input id="ust-ara-metin" type="search" enterkeyhint="search" placeholder="Ne arıyorsun? Örn. Renault Megane 2022" aria-label="İnternette araç ara"><button aria-label="Ara">Ara</button></form>
     <span id="kaynak" class="kaynak"></span>
     <button id="senkron-btn" class="bas-ikon" title="Senkronla" aria-label="Senkronla">⟳</button>
     <button id="ayar-btn" class="bas-ikon" title="Ayarlar" aria-label="Ayarlar">⚙</button>
@@ -25,8 +25,10 @@
 
 <main class="duzen">
   <details class="filtre" id="filtre-kutu">
-    <summary>Filtreler ve önceliklerin <span id="filtre-sayi" class="kucuk"></span></summary>
+    <summary>Sonuçları daralt <span id="filtre-sayi" class="kucuk"></span></summary>
     <form id="filtre" class="filtre-form">
+      <p class="kucuk aciklama">Bunlar internette yeni arama yapmaz; sadece ekrandaki listeyi daraltır ve sıralar.</p>
+      <label>Sonuçlarda ara<input id="ara" type="search" placeholder="ör. Touch, İstanbul" autocomplete="off"></label>
       <fieldset class="oncelik"><legend>Senin için ne önemli?</legend>
         <p class="kucuk">"Sana en uygun" sıralaması bunlara göre yapılır.</p>
         <label>Ucuz olsun<input type="range" min="0" max="5" name="w-fiyat"></label>
@@ -36,9 +38,9 @@
         <label>Tramersiz olsun<input type="range" min="0" max="5" name="w-tramer"></label>
       </fieldset>
       <label>Model<select name="model"></select></label>
-      <fieldset><legend>Yıl</legend><div class="ikili"><input name="y1" type="number" inputmode="numeric" placeholder="en eski"><input name="y2" type="number" inputmode="numeric" placeholder="en yeni"></div></fieldset>
+      <fieldset><legend>Yıl</legend><div class="ikili"><input name="y1" enterkeyhint="next" type="number" inputmode="numeric" placeholder="en eski"><input name="y2" enterkeyhint="next" type="number" inputmode="numeric" placeholder="en yeni"></div></fieldset>
       <fieldset><legend>Fiyat (TL)</legend><div class="ikili"><input name="f1" type="number" inputmode="numeric" placeholder="en az"><input name="f2" type="number" inputmode="numeric" placeholder="en çok"></div></fieldset>
-      <label>En fazla km<input name="km" type="number" inputmode="numeric" placeholder="ör. 100000"></label>
+      <label>En fazla km<input name="km" enterkeyhint="next" type="number" inputmode="numeric" placeholder="ör. 100000"></label>
       <fieldset><legend>Boya-değişen</legend>
         <label class="sec"><input type="radio" name="hasar" value="" checked>Hepsi</label>
         <label class="sec"><input type="radio" name="hasar" value="degisensiz">Değişensiz</label>
@@ -52,7 +54,6 @@
       <fieldset><legend>Kaynak</legend>
         <label class="sec"><input type="checkbox" name="site" value="sahibinden" checked>sahibinden</label>
         <label class="sec"><input type="checkbox" name="site" value="arabam" checked>arabam.com</label></fieldset>
-      <label class="sec"><input type="checkbox" name="kisa">Sadece kısa listem</label>
       <label class="sec"><input type="checkbox" name="dusen">Sadece fiyatı düşenler</label>
       <label class="sec"><input type="checkbox" name="aktif" checked>Yayından kalkanları gizle</label>
       <button type="reset" class="ikincil">Filtreleri temizle</button>
@@ -60,10 +61,12 @@
   </details>
 
   <section class="sonuc">
+    <div id="gorunum" class="gorunum" role="tablist"></div>
+    <div id="arama-ozet" class="arama-ozet kutu" hidden></div>
     <div id="rapor"></div>
     <div id="ozet" class="ozet"></div>
     <details class="kutu grafik" id="grafik-kutu"><summary>Piyasa grafiği: km ve fiyat</summary><div id="grafik"></div></details>
-    <div class="cubuk"><span class="satir"><span id="sayi" class="kucuk"></span><button id="yenile-arama" class="ikincil kucuk-btn" hidden>Aramayı yenile</button></span>
+    <div class="cubuk"><span id="sayi" class="kucuk"></span>
       <label class="kucuk">Sırala <select id="sira">
         <option value="uygun">Sana en uygun</option><option value="firsat">En iyi fırsat</option>
         <option value="ucuz">En ucuz</option><option value="pahali">En pahalı</option>
@@ -83,15 +86,15 @@
 <dialog id="ara-dialog">
   <form id="ara-form" class="ekle-form" novalidate>
     <h2>İnternette ara</h2>
-    <p class="kucuk">Yapay zekâ Google’da seçtiğin sitelerdeki ilanları bulur ve fotoğraflı listeler. Detay için karttan orijinal ilana gidersin.</p>
+    <p class="kucuk">Yapay zekâ Google’da seçtiğin sitelerdeki ilanları bulur ve fotoğraflı listeler. Aşağıdaki kriterler seçtiğin her sitede aynen aranır. Arama sadece “Ara” düğmesine basınca başlar.</p>
     <section class="adim">
-      <label class="tam">Marka ve model<input name="arac" placeholder="Renault Megane 4" required></label>
+      <label class="tam">Marka ve model<input name="arac" enterkeyhint="next" placeholder="Renault Megane 4" required></label>
       <div class="izgara">
         <label>En eski yıl<input name="y1" inputmode="numeric" placeholder="2021"></label>
         <label>En yeni yıl<input name="y2" inputmode="numeric" placeholder="2024"></label>
         <label>En fazla km<input name="km" inputmode="numeric" placeholder="100.000"></label>
-        <label>En fazla fiyat<input name="fiyat" inputmode="numeric" placeholder="1.800.000"></label>
-        <label>Şehir<input name="sehir" placeholder="fark etmez"></label>
+        <label>En fazla fiyat<input name="fiyat" enterkeyhint="next" inputmode="numeric" placeholder="1.800.000"></label>
+        <label>Şehir<input name="sehir" enterkeyhint="next" placeholder="fark etmez"></label>
         <label>Vites<select name="vites"><option value="">Fark etmez</option><option>Otomatik</option><option>Manuel</option></select></label>
         <label>Yakıt<select name="yakit"><option value="">Fark etmez</option><option>Benzin</option><option>Dizel</option><option>Hibrit</option><option>LPG</option></select></label>
       </div>
@@ -99,10 +102,13 @@
     <section class="adim">
       <h3>Nerede arasın?</h3>
       <div id="ara-siteler" class="site-secim"></div>
-      <label class="sec"><input type="checkbox" name="temizle" checked>Önceki arama sonuçlarını kaldır (incelediklerin kalır)</label>
+      <fieldset class="kapsam"><legend>Kapsam</legend>
+        <label class="sec"><input type="radio" name="kapsam" value="hizli" checked><span><strong>Hızlı</strong>: site başına tek arama, yaklaşık 10–20 ilan</span></label>
+        <label class="sec"><input type="radio" name="kapsam" value="genis"><span><strong>Geniş</strong>: her model yılı ayrı aranır, çok daha fazla ilan; daha uzun sürer ve API kullanımı yıl sayısı kadar artar</span></label>
+      </fieldset>
     </section>
     <ul id="ara-ilerleme" class="ara-ilerleme"></ul>
-    <p class="kucuk">Sonuçlar Google’ın son taramasına dayanır: bazı ilanlar satılmış ya da fiyatı değişmiş olabilir. Her site için ayrı arama yapıldığından API kullanımı artar.</p>
+    <p class="kucuk">Sonuçlar Google’ın son taramasına dayanır: bazı ilanlar satılmış ya da fiyatı değişmiş olabilir. Sitedeki ilanların tamamı için sonuç ekranındaki “sitede aç” linklerini kullan.</p>
     <div class="satir ekle-alt sar"><button type="submit" id="ara-baslat">Ara</button><button type="button" class="ikincil" data-kapat>Kapat</button>
       <button type="button" class="baglanti" id="ara-elle">Ekran görüntüsünden elle ekle</button></div>
   </form>

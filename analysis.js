@@ -39,7 +39,13 @@ export function parcaDurumu(ilan, { ilanBeyani = false } = {}) {
   return out;
 }
 
+// Aynı ilan nesnesi için hasar bir kez hesaplanır (yüzlerce ilanda fiyat karşılaştırması hızlanır)
+const hasarOnbellek = new WeakMap();
 export function hasarAnalizi(ilan) {
+  if (!hasarOnbellek.has(ilan)) hasarOnbellek.set(ilan, hasarHesapla(ilan));
+  return hasarOnbellek.get(ilan);
+}
+function hasarHesapla(ilan) {
   const parcalar = parcaDurumu(ilan);
   let puan = 0; const kritik = []; const gruplu = { degisen: [], boyali: [], lokal: [] };
   for (const [id, d] of Object.entries(parcalar)) {
@@ -57,8 +63,11 @@ export function hasarAnalizi(ilan) {
   return { parcalar, puan, skor, indirim, kritik, gruplu };
 }
 
-export const grupAnahtari = i =>
-  norm(i.marka && i.seri ? `${i.marka} ${i.seri}` : (i.baslik || '').split(' ').slice(0, 2).join(' '));
+const grupOnbellek = new WeakMap();
+export const grupAnahtari = i => {
+  if (!grupOnbellek.has(i)) grupOnbellek.set(i, norm(i.marka && i.seri ? `${i.marka} ${i.seri}` : (i.baslik || '').split(' ').slice(0, 2).join(' ')));
+  return grupOnbellek.get(i);
+};
 
 function coz3(A, b) {
   const M = A.map((r, i) => [...r, b[i]]);

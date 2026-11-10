@@ -1,5 +1,5 @@
 // Çevrimdışı açılış + Android "Paylaş" ile gelen ekran görüntülerini karşılama
-const SURUM = 'ir-v5';
+const SURUM = 'ir-v6';
 const DOSYALAR = ['./', 'index.html', 'app.js', 'analysis.js', 'render.js', 'sync.js', 'veri.js', 'ai.js', 'ekle.js', 'kontrol.js',
   'style.css', 'site.css', 'manifest.webmanifest', 'ikon-192.png', 'ikon-512.png', 'ornek-veri.json'];
 

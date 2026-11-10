@@ -1,4 +1,4 @@
-# İlan Röntgeni sitesi ve telefon uygulaması (v0.5)
+# İlan Röntgeni sitesi ve telefon uygulaması (v0.6)
 
 Tek site, iki iş görür: bilgisayarda karşılaştırma ekranı, telefonda ana ekrana kurulan uygulama.
 
@@ -40,7 +40,7 @@ Hiçbiri yoksa örnek veri gösterilir.
 - Eklentiyle ortak (aynı tut): `analysis.js`, `render.js`, `style.css`, `sync.js`
 - Siteye özel: `index.html`, `app.js`, `ekle.js`, `ai.js`, `veri.js`, `site.css`, `sw.js`, `manifest.webmanifest`, ikonlar
 
-## Aracı görmeye giderken (v0.5)
+## Aracı görmeye giderken (v0.6)
 Bir ilanda "İncele"ye bas; dört sekme var:
 - **Özet:** fiyat-hasar analizi ve derin inceleme (Al / Dikkatli ol / Alma).
 - **Kontrol:** görmeden önce, araç başında, test sürüşü, ekspertiz ve satın alma adımları. Derin inceleme yaptıysan bu araca özel sorular da eklenir. İlerleme kartta görünür.
@@ -49,3 +49,11 @@ Bir ilanda "İncele"ye bas; dört sekme var:
 
 Kartlardaki ★ ile kısa listeye al, filtreden "Sadece kısa listem"i seç, karşılaştır ve "Yapay zekâya sor: hangisini almalıyım?" de.
 "Aramayı yenile" kayıtlı aramanı tekrar çalıştırır; yeni ilanlar "Yeni" rozetiyle işaretlenir, fiyatı düşenler sayılır.
+
+## Arama nasıl çalışır? (v0.6)
+- **Üstteki kutuya** aradığın aracı yaz ("Renault Megane 2022") → arama penceresi açılır. Kriterleri kontrol et, siteleri seç, **"Ara"** düğmesine bas. Arama sadece bu düğmeyle başlar.
+- **Kapsam:** "Hızlı" site başına tek arama yapar. "Geniş" her model yılını ayrı arar; çok daha fazla ilan getirir ama daha uzun sürer ve API kullanımı yıl sayısı kadar artar.
+- **Sonuç ekranında üç sekme var:** "Son arama" sadece son aramanın sonuçlarını, "Tüm ilanlar" eklenti, elle eklenen ve eski aramalar dahil her şeyi, "Kısa listem" ★ ile seçtiklerini gösterir.
+- **"Sonuçları daralt"** paneli internette yeni arama yapmaz; sadece ekrandaki listeyi süzer ve sıralar.
+- **Neden yüzlerce değil de birkaç düzine?** Yapay zekâ Google'ın taradığı ilanları görebilir ve her sorguda en fazla 20 ilan getirir. Hepsini görmek için sonuç ekranındaki "sahibinden'de aç" linkiyle aynı aramayı sitenin kendisinde aç. Bilgisayarda eklentiyle o sayfadaki tüm ilanları tek seferde topla; senkronla telefona da gelir.
+- Belirli bir sitede aranıp gerçek bir ilan linki olmayan kayıtlar uydurma olabileceği için gösterilmez.

@@ -35,7 +35,6 @@ function hesapla() {
   D.analiz = new Map(ilanlar.map(i => [i.url, analizEt(i, ilanlar)]));
   D.sonAramaT = Math.max(0, ...ilanlar.map(i => i.aramaT || 0));
   $('#bant').hidden = !D.ornekModu;
-  $('#yenile-arama').hidden = !ayar.sonArama;
   $('#kaynak').textContent = D.ornekModu ? 'Örnek veri' : kaynak.join(' + ');
   secenekler(); ciz();
 }
@@ -97,17 +96,17 @@ function filtreDegerleri() {
     q: norm($('#ara').value).split(' ').filter(Boolean), model: f.model.value, vites: f.vites.value, yakit: f.yakit.value,
     y1: n('y1'), y2: n('y2'), f1: n('f1'), f2: n('f2'), km: n('km'), hasar: f.hasar.value, tramer: f.tramer.value,
     siteler: new Set([...document.querySelectorAll('input[name=site]:checked')].map(x => x.value)),
-    dusen: f.dusen.checked, aktif: f.aktif.checked, kisa: f.kisa.checked
+    dusen: f.dusen.checked, aktif: f.aktif.checked
   };
 }
 
 function filtrele() {
   const f = filtreDegerleri();
-  const etkin = [f.model, f.vites, f.yakit, f.y1, f.y2, f.f1, f.f2, f.km, f.hasar, f.tramer, f.dusen, f.kisa].filter(Boolean).length;
+  const etkin = [f.q.length, f.model, f.vites, f.yakit, f.y1, f.y2, f.f1, f.f2, f.km, f.hasar, f.tramer, f.dusen].filter(Boolean).length;
   $('#filtre-sayi').textContent = etkin ? `(${etkin} etkin)` : '';
-  return D.ilanlar.filter(i => {
+  return gorunumIlanlari().filter(i => {
     const a = D.analiz.get(i.url);
-    if (f.q.length) { const m = norm(`${i.baslik} ${i.marka} ${i.seri} ${i.model} ${i.yil}`); if (!f.q.every(w => m.includes(w))) return false; }
+    if (f.q.length) { const m = norm(`${i.baslik} ${i.marka} ${i.seri} ${i.model} ${i.yil} ${i.sehir || ''}`); if (!f.q.every(w => m.includes(w))) return false; }
     if (f.model && grupAnahtari(i) !== f.model) return false;
     if (f.vites && i.vites !== f.vites) return false;
     if (f.yakit && i.yakit !== f.yakit) return false;
@@ -123,9 +122,37 @@ function filtrele() {
     if (['sahibinden', 'arabam'].includes(i.site) && !f.siteler.has(i.site)) return false;
     if (f.dusen && !((fiyatDegisimi(i)?.fark ?? 0) < 0)) return false;
     if (f.aktif && i.durum === 'kaldirildi') return false;
-    if (f.kisa && !i.kisaListe) return false;
     return true;
   }).map(i => ({ i, a: D.analiz.get(i.url) }));
+}
+
+// ---------- Görünümler: son arama / tüm ilanlar / kısa liste ----------
+const sonArama = () => ayar.sonAramaSonuc;
+function gorunumIlanlari(g = D.gorunum) {
+  if (g === 'arama' && sonArama() && !D.ornekModu) return D.ilanlar.filter(i => i.aramaT === sonArama().t);
+  if (g === 'kisa') return D.ilanlar.filter(i => i.kisaListe);
+  return D.ilanlar;
+}
+function gorunumCiz() {
+  const say = g => gorunumIlanlari(g).length;
+  const sekmeler = [...(sonArama() && !D.ornekModu ? [['arama', 'Son arama']] : []), ['tum', 'Tüm ilanlar'], ['kisa', 'Kısa listem']];
+  if (!sekmeler.some(([k]) => k === D.gorunum)) D.gorunum = sekmeler[0][0];
+  $('#gorunum').innerHTML = sekmeler.map(([k, ad]) =>
+    `<button role="tab" aria-selected="${k === D.gorunum}" class="gorunum-sekme${k === D.gorunum ? ' secili' : ''}" data-gorunum="${k}">${ad} <span>${say(k)}</span></button>`).join('');
+  const s = sonArama(), ao = $('#arama-ozet');
+  if (D.gorunum !== 'arama' || !s) { ao.hidden = true; return; }
+  const k = s.kriter, tarih = new Date(s.t);
+  const kriter = [k.arac, k.y1 || k.y2 ? `${k.y1 || '…'}–${k.y2 || '…'} model` : '', k.km ? `en fazla ${sayiYaz(k.km)} km` : '',
+    k.fiyat ? `${sayiYaz(k.fiyat)} TL'ye kadar` : '', k.sehir, k.vites, k.yakit].filter(Boolean).join(', ');
+  ao.hidden = false;
+  ao.innerHTML = `<div class="ao-ust"><div><strong>${esc(kriter)}</strong>
+      <p class="kucuk">${tarih.toLocaleDateString('tr-TR')} ${tarih.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })}, ${s.kapsam === 'genis' ? 'geniş' : 'hızlı'} arama:
+      ${s.siteler.map(x => `${esc(x.ad)} <b class="${x.hata && !x.sayi ? 'hata' : ''}">${x.hata && !x.sayi ? 'hata' : x.sayi}</b>`).join(', ')}</p></div>
+    <div class="ao-dugmeler"><button class="ikincil kucuk-btn" data-ara-degistir>Kriterleri değiştir</button><button class="kucuk-btn" data-ara-yenile>Yenile</button></div></div>
+    <details class="ao-site" ${s.toplam ? '' : 'open'}><summary>${s.toplam ? `Neden sadece ${s.toplam} ilan? Hepsini gör` : 'Sitenin kendisinde ara'}</summary>
+      <p class="kucuk">Yapay zekâ Google’da arar ve her sorguda en fazla 20 ilan getirebilir; Google da sitelerdeki ilanların ancak bir kısmını tarar. Sahibinden’de yüzlerce ilanın hepsini görmek için aramayı sitenin kendisinde aç${s.kapsam === 'genis' ? '' : ' ya da “Geniş” kapsamla tekrar ara'}. Bilgisayarda eklenti açıkken o sayfadaki tüm ilanları tek dokunuşla buraya toplayabilirsin.</p>
+      <div class="satir sar">${siteLinkleri(k).map(([ad, url]) => `<a class="dugme ikincil" href="${esc(url)}" target="_blank" rel="noopener">${ad}’de aç</a>`).join('')}</div>
+    </details>`;
 }
 
 const SIRALAMA = {
@@ -141,6 +168,7 @@ const SIRALAMA = {
 
 // ---------- Çizim ----------
 function ciz() {
+  gorunumCiz();
   const l = uygunlukHesapla(filtrele(), ayar.agirlik).sort(SIRALAMA[$('#sira').value]);
   D.liste = l;
   raporCiz(l); ozetCiz(l); grafikCiz(l);
@@ -148,9 +176,16 @@ function ciz() {
   $('#liste').innerHTML = l.length
     ? l.slice(0, D.limit).map(x => ilanKarti(x.i, x.a, { karsilastir: true, secili: D.secili.has(x.i.url), incele: true, uygunluk: x.uygun,
         kisaListe: true, yeni: !!x.i.yeniT && x.i.yeniT === D.sonAramaT, ilerleme: ilerleme(x.i) })).join('')
-    : `<div class="bos">${D.ilanlar.length ? 'Bu filtrelere uyan ilan yok. Birkaç filtreyi gevşet.' : 'Henüz ilan yok. "İnternette ara" ile başla.'}</div>`;
+    : `<div class="bos">${bosMesaj()}</div>`;
   $('#daha').hidden = l.length <= D.limit;
   karsBar();
+}
+
+function bosMesaj() {
+  if (!D.ilanlar.length) return 'Henüz ilan yok. Yukarıdaki kutuya aradığın aracı yaz ya da "İnternette ara"ya bas.';
+  if (!gorunumIlanlari().length) return D.gorunum === 'kisa' ? 'Kısa listen boş. Beğendiğin ilanlarda ★ düğmesine bas.'
+    : D.gorunum === 'arama' ? 'Bu aramada ilan bulunamadı. Kriterleri gevşet, “Geniş” kapsamı dene ya da yukarıdan aramayı sitenin kendisinde aç.' : 'Henüz ilan yok.';
+  return 'Bu filtrelere uyan ilan yok. “Sonuçları daralt” bölümünde birkaç filtreyi gevşet.';
 }
 
 // Ekrandaki ilanların çoğu tek modelse o modelin anahtarı
@@ -285,6 +320,7 @@ const SEKMELER = [['deger', 'Özet'], ['kontrol', 'Kontrol'], ['eksp', 'Eksperti
 const LEJANT = `<div class="lejant dikey"><span><i style="background:var(--orijinal)"></i>Orijinal</span><span><i style="background:var(--lokal)"></i>Lokal boyalı</span>
   <span><i style="background:var(--boyali)"></i>Boyalı</span><span><i style="background:var(--degisen)"></i>Değişen</span></div>`;
 D.sekme = 'deger';
+D.gorunum = ayar.sonAramaSonuc ? 'arama' : 'tum';
 const bul = url => D.ilanlar.find(x => x.url === url);
 
 function guncelle(url, degisim) {
@@ -480,8 +516,9 @@ function siteListesi() {
   return [...VARSAYILAN_SITELER, ...ek.map(x => ({ ad: x, alan: x }))];
 }
 
-function araAc() {
-  const f = $('#ara-form').elements, s = ayar.sonArama || {};
+function araAc(on = null) {
+  const f = $('#ara-form').elements, s = on ? { ...(ayar.sonArama || {}), y1: '', y2: '', ...on } : (ayar.sonArama || {});
+  f.kapsam.value = s.kapsam || 'hizli';
   for (const k of ['arac', 'sehir', 'vites', 'yakit']) f[k].value = s[k] || '';
   for (const k of ['y1', 'y2']) f[k].value = s[k] || '';
   for (const k of ['km', 'fiyat']) f[k].value = sayiYaz(s[k]);
@@ -498,6 +535,8 @@ function ilanaCevir(x, site, k, zaman) {
   if (!fiyat || fiyat < 50000 || !yil || yil < 1990 || yil > new Date().getFullYear() + 1) return null;
   let url = typeof x.url === 'string' && /^https?:\/\/[^ ]+\.[a-z]{2,}/i.test(x.url) ? x.url.trim().split('#')[0] : null;
   if (url && site.alan && !url.includes(site.alan)) url = null; // istenen siteye ait değilse güvenme
+  if (url && /sahibinden\.com|arabam\.com/.test(url) && !/\/ilan\//.test(url)) url = null; // liste sayfası, tek ilan değil
+  if (site.alan && !url) return null; // belirli sitede arandı ama gerçek ilan linki yok: büyük ihtimalle uydurma, atla
   let host = url ? new URL(url).hostname.replace(/^www\./, '') : site.alan || site.ad;
   const siteAd = /sahibinden/.test(host) ? 'sahibinden' : /arabam/.test(host) ? 'arabam' : host;
   // Aynı modelin ilanları tek grupta toplansın: aranan marka/seri metinde geçiyorsa onu kullan
@@ -521,47 +560,80 @@ const kriteraUyar = (x, k) => !(k.y1 && x.yil < k.y1) && !(k.y2 && x.yil > k.y2)
   && !(k.km && x.km != null && x.km > k.km * 1.05) && !(k.fiyat && x.fiyat > k.fiyat * 1.03);
 const anahtar = x => `${x.site}|${x.fiyat}|${x.km}|${x.yil}`;
 
+// Aynı anda en fazla n istek (Gemini kotasını aşmamak için)
+async function havuz(isler, n = 3) {
+  let sira = 0;
+  await Promise.all(Array.from({ length: Math.min(n, isler.length) }, async () => { while (sira < isler.length) await isler[sira++](); }));
+}
+const bekle = ms => new Promise(r => setTimeout(r, ms));
+async function tekrarli(fn) {
+  try { return await fn(); } catch (e) {
+    if (!/429|500|503|kota|bozuk|okunamadı/i.test(e.message)) throw e;
+    await bekle(4000); return fn(); // kota/geçici hata: bir kez daha dene
+  }
+}
+
+// Sitenin kendi arama sayfası: Google'ın bulamadığı ilanların hepsi orada
+function siteLinkleri(k) {
+  const [m1, m2] = norm(k.arac).split(' ');
+  const slug = [m1, m2].filter(Boolean).join('-').replace(/[^a-z0-9-]/g, '');
+  const sp = new URLSearchParams();
+  if (k.y1) sp.set('a5_min', k.y1); if (k.y2) sp.set('a5_max', k.y2);
+  if (k.km) sp.set('a4_max', k.km); if (k.fiyat) sp.set('price_max', k.fiyat);
+  sp.set('pagingSize', '50');
+  const ap = new URLSearchParams({ searchText: k.arac });
+  if (k.y1) ap.set('minyear', k.y1); if (k.y2) ap.set('maxyear', k.y2);
+  return [['sahibinden', `https://www.sahibinden.com/${slug}?${sp}`], ['arabam.com', `https://www.arabam.com/ikinci-el/otomobil?${ap}`]];
+}
+
 async function araBaslat(e) {
   e.preventDefault();
   if (!aiHazir(ayar)) { bildirim(aiEksikMesaji(ayar), true); return ayarAc(); }
-  const f = e.target.elements;
+  const f = $('#ara-form').elements;
   const k = { arac: f.arac.value.trim(), y1: sayi(f.y1.value), y2: sayi(f.y2.value), km: sayi(f.km.value), fiyat: sayi(f.fiyat.value),
     sehir: f.sehir.value.trim(), vites: f.vites.value, yakit: f.yakit.value };
   if (!k.arac) { f.arac.focus(); return bildirim('Marka ve model yaz', true); }
+  if (k.y1 && k.y2 && k.y1 > k.y2) [k.y1, k.y2] = [k.y2, k.y1];
   const tum = siteListesi();
-  const secilen = [...e.target.querySelectorAll('input[name=site]:checked')].map(c => tum[+c.value]);
+  const secilen = [...$('#ara-form').querySelectorAll('input[name=site]:checked')].map(c => tum[+c.value]);
   if (!secilen.length) return bildirim('En az bir site seç', true);
-  ayar.sonArama = { ...k, siteAdlari: secilen.map(s => s.ad) }; ayarYaz(ayar);
+  const genis = f.kapsam.value === 'genis';
+  ayar.sonArama = { ...k, siteAdlari: secilen.map(s => s.ad), kapsam: f.kapsam.value }; ayarYaz(ayar);
 
+  // Geniş kapsam: her model yılı ayrı aranır (en fazla 6 yıl)
+  const buYil = new Date().getFullYear();
+  const y1 = k.y1 || buYil - 4, y2 = Math.min(k.y2 || buYil, y1 + 5);
+  const yillar = genis ? Array.from({ length: y2 - y1 + 1 }, (_, n) => y1 + n) : [null];
   const btn = $('#ara-baslat'); btn.disabled = true; btn.textContent = 'Aranıyor…';
-  $('#ara-ilerleme').innerHTML = secilen.map((s, i) => `<li id="ai-${i}"><span>${esc(s.ad)}</span><span>aranıyor…</span></li>`).join('');
-  const zaman = Date.now(), bulunan = []; let elenen = 0;
-  await Promise.all(secilen.map(async (s, i) => {
-    const durum = $(`#ai-${i} span:last-child`);
+  $('#ara-ilerleme').innerHTML = secilen.map((s, i) => `<li id="ai-${i}"><span>${esc(s.ad)}</span><span>sırada…</span></li>`).join('');
+  const zaman = Date.now(), bulunan = [], durum = secilen.map(s => ({ ad: s.ad, sayi: 0, hata: null, biten: 0 }));
+  let elenen = 0;
+  const isler = secilen.flatMap((s, i) => yillar.map(yil => async () => {
+    const d = durum[i], el = $(`#ai-${i} span:last-child`);
+    el.textContent = genis ? `aranıyor (${d.biten}/${yillar.length})…` : 'aranıyor…';
     try {
-      const { ilanlar } = await internetteAra(ayar, k, s);
-      const cevrilen = ilanlar.map(x => ilanaCevir(x, s, k, zaman)).filter(Boolean);
-      const uyan = cevrilen.filter(x => kriteraUyar(x, k));
-      elenen += ilanlar.length - uyan.length;
-      bulunan.push(...uyan);
-      durum.textContent = uyan.length ? `${uyan.length} ilan` : 'uygun ilan bulunamadı';
-      durum.className = uyan.length ? 'ok' : '';
-    } catch (err) { durum.textContent = err.message.slice(0, 90); durum.className = 'hata'; }
+      const { ilanlar } = await tekrarli(() => internetteAra(ayar, k, s, yil));
+      const uyan = ilanlar.map(x => ilanaCevir(x, s, k, zaman)).filter(Boolean).filter(x => kriteraUyar(x, k));
+      elenen += ilanlar.length - uyan.length; bulunan.push(...uyan); d.sayi += uyan.length;
+    } catch (err) { d.hata = err.message.slice(0, 90); }
+    d.biten++;
+    const bitti = d.biten === yillar.length;
+    el.textContent = !bitti ? `aranıyor (${d.biten}/${yillar.length})… ${d.sayi} ilan` : d.sayi ? `${d.sayi} ilan` : d.hata || 'uygun ilan bulunamadı';
+    el.className = bitti ? (d.sayi ? 'ok' : d.hata ? 'hata' : '') : '';
   }));
+  await havuz(isler, 3);
   btn.disabled = false; btn.textContent = 'Ara';
-  if (!bulunan.length) return bildirim('Uygun ilan bulunamadı. Kriterleri gevşetip tekrar dene.', true);
 
+  // Kaydet: önceki bilgiler (inceleme, ekspertiz, notlar, fiyat geçmişi) korunur
   const onceki = { ...D.yerel.ilanlar };
   const oncekiAnahtar = new Set(Object.values(onceki).map(anahtar));
   const oncekiArama = Object.values(onceki).some(i => i.kaynakTip === 'arama');
-  let yeniSay = 0, dusenSay = 0;
-  if (f.temizle.checked) for (const [u, i] of Object.entries(D.yerel.ilanlar))
-    if (i.kaynakTip === 'arama' && !i.inceleme && !i.takip && !i.kisaListe && !i.ekspertiz && !i.notlar && (i.aramaT || 0) < zaman) { delete D.yerel.ilanlar[u]; D.yerel.silinenler[u] = zaman - 1; }
-  const goruldu = new Set(Object.values(D.yerel.ilanlar).map(anahtar));
+  let yeniSay = 0, dusenSay = 0, kaydedilen = 0;
+  const goruldu = new Set();
   for (const x of bulunan) {
-    const eski = D.yerel.ilanlar[x.url] || onceki[x.url];
-    if (!eski && goruldu.has(anahtar(x))) continue; // aynı ilan iki kez bulunduysa
-    goruldu.add(anahtar(x));
+    const eski = onceki[x.url];
+    if (goruldu.has(anahtar(x)) || goruldu.has(x.url)) continue; // aynı ilan iki sorguda bulunduysa
+    goruldu.add(anahtar(x)); goruldu.add(x.url);
     if (!eski && !oncekiAnahtar.has(anahtar(x)) && oncekiArama) { x.yeniT = zaman; yeniSay++; }
     if (eski?.fiyat > x.fiyat) dusenSay++;
     const gecmis = [...(eski?.gecmis || [])];
@@ -570,17 +642,42 @@ async function araBaslat(e) {
       inceleme: eski?.inceleme, takip: eski?.takip, kisaListe: eski?.kisaListe, ekspertiz: eski?.ekspertiz,
       kontrolListesi: eski?.kontrolListesi, notlar: eski?.notlar, puan: eski?.puan, degisim: zaman };
     delete D.yerel.silinenler[x.url];
+    kaydedilen++;
   }
+  // 7 günden eski, hiç dokunulmamış arama sonuçlarını temizle (depo şişmesin)
+  for (const [u, i] of Object.entries(D.yerel.ilanlar))
+    if (i.kaynakTip === 'arama' && (i.aramaT || 0) < zaman - 7 * 864e5 && !i.inceleme && !i.takip && !i.kisaListe && !i.ekspertiz && !i.notlar) {
+      delete D.yerel.ilanlar[u]; D.yerel.silinenler[u] = zaman - 1;
+    }
+  ayar.sonAramaSonuc = { t: zaman, kriter: k, kapsam: f.kapsam.value, siteler: durum.map(({ ad, sayi, hata }) => ({ ad, sayi, hata })), toplam: kaydedilen, elenen };
+  ayarYaz(ayar);
+  D.gorunum = 'arama';
+  $('#ara').value = ''; $('#filtre').reset(); $('#sira').value = 'uygun';
   yerelKaydet();
   $('#ara-dialog').close();
-  const say = {}; bulunan.forEach(x => { const g = grupAnahtari(x); say[g] = (say[g] || 0) + 1; });
-  const enCok = Object.entries(say).sort((a, b) => b[1] - a[1])[0]?.[0] || '';
-  $('#ara').value = ''; $('#filtre').reset(); $('#sira').value = 'uygun';
-  setTimeout(() => { $('#filtre').elements.model.value = enCok; yeniden(); $('#ozet').scrollIntoView({ block: 'start' }); });
-  bildirim(oncekiArama ? `${bulunan.length} ilan: ${yeniSay} yeni, ${dusenSay} ilanın fiyatı düştü` :
-    `${bulunan.length} ilan bulundu${elenen ? `; kriterine uymayan ya da eksik ${elenen} kayıt elendi` : ''}`);
+  setTimeout(() => { yeniden(); $('#gorunum').scrollIntoView({ block: 'start' }); });
+  const toplam = ayar.sonAramaSonuc.toplam;
+  if (!toplam) bildirim('Bu aramada ilan bulunamadı. Aşağıdaki linklerle sitenin kendisinde arayabilirsin.', true);
+  else bildirim(oncekiArama ? `${toplam} ilan: ${yeniSay} yeni, ${dusenSay} ilanın fiyatı düştü` : `${toplam} ilan bulundu`);
 }
-$('#ara-form').onsubmit = araBaslat;
+// Telefonda klavyenin "Git" tuşu aramayı başlatmasın; sadece "Ara" düğmesi başlatır
+$('#ara-form').addEventListener('keydown', e => {
+  if (e.key !== 'Enter' || e.target.tagName !== 'INPUT') return;
+  e.preventDefault();
+  const alanlar = [...$('#ara-form').querySelectorAll('input:not([type=checkbox]):not([type=radio]), select')];
+  alanlar[alanlar.indexOf(e.target) + 1]?.focus();
+});
+// Üstteki kutu: yazılanı arama penceresine taşır (yıl yazıldıysa yıl alanına)
+$('#ust-ara').addEventListener('submit', e => {
+  e.preventDefault();
+  const metin = $('#ust-ara-metin').value.trim();
+  const yil = metin.match(/\b(19[9]\d|20[0-4]\d)\b/)?.[1];
+  const arac = metin.replace(yil || '', '').replace(/\s+/g, ' ').trim();
+  if (!arac && !yil) araAc(); // boş kutu: son arama kriterleriyle aç
+  else araAc({ ...(arac ? { arac } : {}), ...(yil ? { y1: +yil, y2: +yil } : {}) });
+  $('#ust-ara-metin').blur();
+});
+$('#ara-form').addEventListener('submit', araBaslat);
 $('#ara-elle').onclick = () => { $('#ara-dialog').close(); ekleAc(); };
 
 // ---------- Son karar ----------
@@ -668,7 +765,7 @@ document.addEventListener('click', e => {
     $(`#eksp-sema [data-parca="${id}"]`)?.focus();
     return;
   }
-  const t = e.target.closest('[data-git],[data-incele],[data-detay],[data-inc],[data-rapor],[data-duzenle],[data-sil],[data-kapat],[data-kisa],[data-sekme],[data-puan],[data-eksp-ac],[data-eksp-oku],[data-eksp-kaydet],[data-eksp-iptal],[data-eksp-sil],[data-final]');
+  const t = e.target.closest('[data-git],[data-incele],[data-detay],[data-inc],[data-rapor],[data-duzenle],[data-sil],[data-kapat],[data-kisa],[data-sekme],[data-puan],[data-eksp-ac],[data-eksp-oku],[data-eksp-kaydet],[data-eksp-iptal],[data-eksp-sil],[data-final],[data-gorunum],[data-ara-degistir],[data-ara-yenile]');
   if (!t) return;
   const d = t.dataset, url = acikUrl();
   if (d.git) { e.preventDefault(); git(d.git); }
@@ -682,6 +779,9 @@ document.addEventListener('click', e => {
   else if ('ekspIptal' in d) { D.eksp = null; detayAc(url, 'eksp'); }
   else if ('ekspSil' in d) { if (confirm('Ekspertiz sonucu silinsin mi?') && guncelle(url, { ekspertiz: null })) detayAc(url, 'eksp'); }
   else if ('final' in d) finalCalistir();
+  else if (d.gorunum) { D.gorunum = d.gorunum; D.limit = 40; ciz(); }
+  else if ('araDegistir' in d) araAc();
+  else if ('araYenile' in d) { araAc(); araBaslat(new Event('submit')); }
   else if (d.inc) incele(d.inc);
   else if (d.rapor) raporOlustur(d.rapor);
   else if (d.duzenle) {
@@ -714,7 +814,6 @@ document.addEventListener('change', async e => {
   }
 });
 $('#kars-ac').onclick = karsTablo;
-$('#yenile-arama').onclick = () => { araAc(); $('#ara-form').requestSubmit(); };
 $('#kars-temizle').onclick = () => { D.secili.clear(); document.querySelectorAll('[data-kars]').forEach(c => c.checked = false); karsBar(); };
 
 // Öncelik kaydırıcıları
@@ -722,11 +821,13 @@ const filtreF = $('#filtre').elements;
 for (const k in ayar.agirlik) { filtreF[`w-${k}`].value = ayar.agirlik[k]; filtreF[`w-${k}`].defaultValue = ayar.agirlik[k]; }
 const yeniden = () => { D.limit = 40; ciz(); };
 $('#filtre').addEventListener('input', e => {
+  if (e.target.id === 'ara') return; // metin kutusu gecikmeli çalışır
   if (e.target.name?.startsWith('w-')) { ayar.agirlik[e.target.name.slice(2)] = +e.target.value; e.target.defaultValue = e.target.value; ayarYaz(ayar); }
   yeniden();
 });
 $('#filtre').addEventListener('reset', () => setTimeout(yeniden));
-$('#ara').addEventListener('input', yeniden);
+let yazZaman;
+$('#ara').addEventListener('input', () => { clearTimeout(yazZaman); yazZaman = setTimeout(yeniden, 180); });
 $('#sira').addEventListener('input', yeniden);
 $('#daha').onclick = () => { D.limit += 40; ciz(); };
 $('#grafik-kutu').addEventListener('toggle', () => grafikCiz(D.liste));

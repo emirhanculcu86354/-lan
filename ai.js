@@ -67,12 +67,13 @@ export const VARSAYILAN_SITELER = [
   { ad: 'Yetkili bayiler', alan: '' }
 ];
 
-export async function internetteAra(a, k, site) {
+// yil verilirse o model yılı için ayrı arama yapılır (Geniş kapsam)
+export async function internetteAra(a, k, site, yil = null) {
   const nerede = site.alan
     ? `SADECE ${site.alan} sitesinde (aramalarına "site:${site.alan}" ekle)`
     : 'Türkiye’deki marka yetkili bayilerinin ve kurumsal garantili ikinci el platformlarının sitelerinde';
   const kosullar = [
-    k.y1 || k.y2 ? `model yılı ${k.y1 || '...'}–${k.y2 || '...'}` : '',
+    yil ? `model yılı tam olarak ${yil}` : k.y1 || k.y2 ? `model yılı ${k.y1 || '...'}–${k.y2 || '...'}` : '',
     k.km ? `en fazla ${k.km.toLocaleString('tr-TR')} km` : '',
     k.fiyat ? `en fazla ${k.fiyat.toLocaleString('tr-TR')} TL` : '',
     k.sehir ? `${k.sehir} ve çevresi` : '',
@@ -81,7 +82,7 @@ export async function internetteAra(a, k, site) {
   const { json, kaynaklar } = await uret(a, { webArama: true, maxTokens: 4000, metin:
 `Google'da ara ve ${nerede} şu an satılık olan TEK TEK ikinci el araç ilanlarını bul.
 Araç: ${k.arac}. Koşullar: ${kosullar || 'yok'}.
-Farklı aramalar yap (yıl, paket, şehir değiştirerek) ve olabildiğince çok gerçek ilan topla, en fazla 15.
+Farklı aramalar yap (paket, motor, şehir, fiyat sıralaması değiştirerek) ve olabildiğince çok gerçek ilan topla, en fazla 20.
 KURALLAR:
 - Sadece arama sonuçlarında gerçekten gördüğün ilanları yaz. İlan, link, fiyat veya fotoğraf UYDURMA.
 - Liste/kategori sayfası değil, tek bir ilanın sayfası olmalı. url o ilanın adresi olsun.
