@@ -1,0 +1,197 @@
+<!doctype html>
+<html lang="tr"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>İlan Röntgeni: ikinci el araç araştırma</title>
+<meta name="description" content="İkinci el araç ilanlarını fiyat, km ve boya-değişen durumuna göre karşılaştır, en sıkıntısızını bul.">
+<meta name="theme-color" content="#1F5FA8">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="ikon-192.png"><link rel="apple-touch-icon" href="ikon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="stylesheet" href="style.css"><link rel="stylesheet" href="site.css">
+</head><body>
+<header class="bas">
+  <div class="bas-ic">
+    <a class="logo" href="./"><img src="ikon-192.png" width="28" height="28" alt="">İlan Röntgeni</a>
+    <input id="ara" type="search" placeholder="Model, paket, yıl ara: Megane Touch 2022" aria-label="İlan ara">
+    <span id="kaynak" class="kaynak"></span>
+    <button id="senkron-btn" class="bas-ikon" title="Senkronla" aria-label="Senkronla">⟳</button>
+    <button id="ayar-btn" class="bas-ikon" title="Ayarlar" aria-label="Ayarlar">⚙</button>
+    <button id="ekle-btn" class="bas-metin">+ İlan ekle</button>
+    <button id="ara-btn" class="ekle-btn">İnternette ara</button>
+  </div>
+</header>
+<p id="bant" class="bant" hidden>Örnek veri gösteriliyor. "İnternette ara" ile gerçek ilanları getir.</p>
+<div id="bildirim" class="bildirim" role="status" aria-live="polite" hidden></div>
+
+<main class="duzen">
+  <details class="filtre" id="filtre-kutu">
+    <summary>Filtreler ve önceliklerin <span id="filtre-sayi" class="kucuk"></span></summary>
+    <form id="filtre" class="filtre-form">
+      <fieldset class="oncelik"><legend>Senin için ne önemli?</legend>
+        <p class="kucuk">"Sana en uygun" sıralaması bunlara göre yapılır.</p>
+        <label>Ucuz olsun<input type="range" min="0" max="5" name="w-fiyat"></label>
+        <label>Hasarsız olsun<input type="range" min="0" max="5" name="w-hasar"></label>
+        <label>Az km olsun<input type="range" min="0" max="5" name="w-km"></label>
+        <label>Yeni model olsun<input type="range" min="0" max="5" name="w-yil"></label>
+        <label>Tramersiz olsun<input type="range" min="0" max="5" name="w-tramer"></label>
+      </fieldset>
+      <label>Model<select name="model"></select></label>
+      <fieldset><legend>Yıl</legend><div class="ikili"><input name="y1" type="number" inputmode="numeric" placeholder="en eski"><input name="y2" type="number" inputmode="numeric" placeholder="en yeni"></div></fieldset>
+      <fieldset><legend>Fiyat (TL)</legend><div class="ikili"><input name="f1" type="number" inputmode="numeric" placeholder="en az"><input name="f2" type="number" inputmode="numeric" placeholder="en çok"></div></fieldset>
+      <label>En fazla km<input name="km" type="number" inputmode="numeric" placeholder="ör. 100000"></label>
+      <fieldset><legend>Boya-değişen</legend>
+        <label class="sec"><input type="radio" name="hasar" value="" checked>Hepsi</label>
+        <label class="sec"><input type="radio" name="hasar" value="degisensiz">Değişensiz</label>
+        <label class="sec"><input type="radio" name="hasar" value="boyasiz">Boyasız, değişensiz</label></fieldset>
+      <fieldset><legend>Tramer</legend>
+        <label class="sec"><input type="radio" name="tramer" value="" checked>Hepsi</label>
+        <label class="sec"><input type="radio" name="tramer" value="yok">Tramer kaydı yok</label>
+        <label class="sec"><input type="radio" name="tramer" value="50">50 bin TL altı</label></fieldset>
+      <label>Vites<select name="vites"></select></label>
+      <label>Yakıt<select name="yakit"></select></label>
+      <fieldset><legend>Kaynak</legend>
+        <label class="sec"><input type="checkbox" name="site" value="sahibinden" checked>sahibinden</label>
+        <label class="sec"><input type="checkbox" name="site" value="arabam" checked>arabam.com</label></fieldset>
+      <label class="sec"><input type="checkbox" name="kisa">Sadece kısa listem</label>
+      <label class="sec"><input type="checkbox" name="dusen">Sadece fiyatı düşenler</label>
+      <label class="sec"><input type="checkbox" name="aktif" checked>Yayından kalkanları gizle</label>
+      <button type="reset" class="ikincil">Filtreleri temizle</button>
+    </form>
+  </details>
+
+  <section class="sonuc">
+    <div id="rapor"></div>
+    <div id="ozet" class="ozet"></div>
+    <details class="kutu grafik" id="grafik-kutu"><summary>Piyasa grafiği: km ve fiyat</summary><div id="grafik"></div></details>
+    <div class="cubuk"><span class="satir"><span id="sayi" class="kucuk"></span><button id="yenile-arama" class="ikincil kucuk-btn" hidden>Aramayı yenile</button></span>
+      <label class="kucuk">Sırala <select id="sira">
+        <option value="uygun">Sana en uygun</option><option value="firsat">En iyi fırsat</option>
+        <option value="ucuz">En ucuz</option><option value="pahali">En pahalı</option>
+        <option value="km">En az km</option><option value="yil">En yeni model</option><option value="temiz">En az hasar</option>
+        <option value="dusus">En çok fiyatı düşen</option></select></label></div>
+    <div id="liste" class="liste"></div>
+    <button id="daha" class="ikincil daha" hidden>Daha fazla göster</button>
+  </section>
+</main>
+
+<div id="kars-bar" class="kars-bar" hidden>
+  <span id="kars-yazi"></span><button id="kars-ac">Karşılaştır</button><button id="kars-temizle" class="ikincil">Temizle</button>
+</div>
+<dialog id="kars-dialog"><div id="kars-icerik"></div><form method="dialog"><button>Kapat</button></form></dialog>
+<dialog id="detay-dialog"><div id="detay-icerik"></div></dialog>
+
+<dialog id="ara-dialog">
+  <form id="ara-form" class="ekle-form" novalidate>
+    <h2>İnternette ara</h2>
+    <p class="kucuk">Yapay zekâ Google’da seçtiğin sitelerdeki ilanları bulur ve fotoğraflı listeler. Detay için karttan orijinal ilana gidersin.</p>
+    <section class="adim">
+      <label class="tam">Marka ve model<input name="arac" placeholder="Renault Megane 4" required></label>
+      <div class="izgara">
+        <label>En eski yıl<input name="y1" inputmode="numeric" placeholder="2021"></label>
+        <label>En yeni yıl<input name="y2" inputmode="numeric" placeholder="2024"></label>
+        <label>En fazla km<input name="km" inputmode="numeric" placeholder="100.000"></label>
+        <label>En fazla fiyat<input name="fiyat" inputmode="numeric" placeholder="1.800.000"></label>
+        <label>Şehir<input name="sehir" placeholder="fark etmez"></label>
+        <label>Vites<select name="vites"><option value="">Fark etmez</option><option>Otomatik</option><option>Manuel</option></select></label>
+        <label>Yakıt<select name="yakit"><option value="">Fark etmez</option><option>Benzin</option><option>Dizel</option><option>Hibrit</option><option>LPG</option></select></label>
+      </div>
+    </section>
+    <section class="adim">
+      <h3>Nerede arasın?</h3>
+      <div id="ara-siteler" class="site-secim"></div>
+      <label class="sec"><input type="checkbox" name="temizle" checked>Önceki arama sonuçlarını kaldır (incelediklerin kalır)</label>
+    </section>
+    <ul id="ara-ilerleme" class="ara-ilerleme"></ul>
+    <p class="kucuk">Sonuçlar Google’ın son taramasına dayanır: bazı ilanlar satılmış ya da fiyatı değişmiş olabilir. Her site için ayrı arama yapıldığından API kullanımı artar.</p>
+    <div class="satir ekle-alt sar"><button type="submit" id="ara-baslat">Ara</button><button type="button" class="ikincil" data-kapat>Kapat</button>
+      <button type="button" class="baglanti" id="ara-elle">Ekran görüntüsünden elle ekle</button></div>
+  </form>
+</dialog>
+
+<dialog id="ekle-dialog">
+  <form id="ekle-form" class="ekle-form" novalidate>
+    <h2 id="ekle-baslik">İlan ekle</h2>
+    <section class="adim">
+      <h3>1. İlanı getir</h3>
+      <label>İlan linki<input name="link" type="url" inputmode="url" placeholder="https://www.sahibinden.com/ilan/…"></label>
+      <label class="dosya-sec ikincil">Ekran görüntüsü seç (bilgiler, boya şeması, açıklama)
+        <input id="ekle-dosya" type="file" accept="image/*" multiple></label>
+      <span id="ekle-gorsel-sayi" class="kucuk"></span>
+      <div id="ekle-onizleme" class="onizleme"></div>
+      <label>Ya da ilan metnini yapıştır<textarea name="metin" rows="3" placeholder="İlan sayfasındaki yazıları kopyalayıp buraya yapıştır"></textarea></label>
+      <button type="button" id="ekle-ai">Yapay zekâ ile doldur</button>
+      <p id="ekle-durum" class="kucuk" role="status"></p>
+    </section>
+    <section class="adim">
+      <h3>2. Bilgileri kontrol et</h3>
+      <label class="tam">Başlık<input name="baslik"></label>
+      <div class="izgara">
+        <label>Marka<input name="marka" placeholder="Renault"></label>
+        <label>Seri<input name="seri" placeholder="Megane"></label>
+        <label>Paket / motor<input name="model" placeholder="1.3 TCe Touch"></label>
+        <label>Yıl<input name="yil" inputmode="numeric" required></label>
+        <label>Km<input name="km" inputmode="numeric"></label>
+        <label>Fiyat (TL)<input name="fiyat" inputmode="numeric" required></label>
+        <label>Tramer (TL, yoksa 0)<input name="tramer" inputmode="numeric" placeholder="bilinmiyor"></label>
+        <label>Vites<input name="vites" list="vites-l"></label>
+        <label>Yakıt<input name="yakit" list="yakit-l"></label>
+        <label>İlan tarihi<input name="ilanTarihi" placeholder="10 Kasım 2026"></label>
+        <label>Kimden<input name="kimden" list="kimden-l"></label>
+      </div>
+      <datalist id="vites-l"><option>Otomatik</option><option>Manuel</option><option>Yarı Otomatik</option></datalist>
+      <datalist id="yakit-l"><option>Benzin</option><option>Dizel</option><option>LPG &amp; Benzin</option><option>Hibrit</option><option>Elektrik</option></datalist>
+      <datalist id="kimden-l"><option>Sahibinden</option><option>Galeriden</option><option>Yetkili Bayiden</option></datalist>
+      <label class="tam">Açıklama<textarea name="aciklama" rows="3"></textarea></label>
+    </section>
+    <section class="adim">
+      <h3>3. Boya-değişen</h3>
+      <p class="kucuk">Parçaya dokundukça değişir: orijinal → lokal boyalı → boyalı → değişen.</p>
+      <div class="sema-satir"><div id="ekle-sema" class="ekle-sema"></div>
+        <div class="lejant dikey"><span><i style="background:var(--orijinal)"></i>Orijinal</span><span><i style="background:var(--lokal)"></i>Lokal boyalı</span>
+        <span><i style="background:var(--boyali)"></i>Boyalı</span><span><i style="background:var(--degisen)"></i>Değişen</span></div></div>
+    </section>
+    <div class="satir ekle-alt"><button type="submit">Kaydet</button><button type="button" class="ikincil" id="ekle-iptal">Vazgeç</button></div>
+  </form>
+</dialog>
+
+<dialog id="ayar-dialog">
+  <form id="ayar-form" class="ayar-form">
+    <h2>Ayarlar</h2>
+    <section class="adim">
+      <h3>Telefona kur</h3>
+      <p class="kucuk" id="kur-yazi">Android Chrome: menü → Ana ekrana ekle. iPhone Safari: Paylaş → Ana Ekrana Ekle. Kurunca sahibinden uygulamasından "Paylaş" ile ekran görüntüsünü doğrudan buraya gönderebilirsin (Android).</p>
+      <button type="button" id="kur-btn" hidden>Uygulamayı yükle</button>
+    </section>
+    <section class="adim">
+      <h3>Senkron (bilgisayar ve telefon)</h3>
+      <p class="kucuk">github.com → Settings → Developer settings → Personal access tokens → Tokens (classic) → Generate new token. Sadece <strong>gist</strong> kutusunu işaretle. Veriler gizli bir Gist’te durur.</p>
+      <label>GitHub anahtarı<input name="ghToken" type="password" autocomplete="off" placeholder="ghp_…"></label>
+      <label>Gist kimliği (ilk senkronda oluşur; diğer cihaza aynısını yaz)<input name="gistId" autocomplete="off"></label>
+    </section>
+    <section class="adim">
+      <h3>Yapay zekâ</h3>
+      <fieldset class="saglayici"><label class="sec"><input type="radio" name="saglayici" value="gemini">Gemini (Google Arama ile)</label>
+        <label class="sec"><input type="radio" name="saglayici" value="claude">Claude</label></fieldset>
+      <p class="kucuk">Gemini anahtarını aistudio.google.com → Get API key’den alırsın. Google Cloud’da bütçe uyarısı koymanı öneririm. Anahtarlar sadece bu cihazda saklanır.</p>
+      <label>Gemini API anahtarı<input name="geminiKey" type="password" autocomplete="off" placeholder="AIza…"></label>
+      <label>Gemini modeli<input name="geminiModel"></label>
+      <details><summary class="kucuk">Claude ayarları</summary>
+        <label>Anthropic API anahtarı<input name="apiKey" type="password" autocomplete="off" placeholder="sk-ant-…"></label>
+        <label>Claude modeli<input name="model"></label></details>
+      <label>Ek aranacak siteler (her satıra bir alan adı)<textarea name="ekSiteler" rows="2" placeholder="ornek-galeri.com"></textarea></label>
+    </section>
+    <section class="adim">
+      <h3>Veri</h3>
+      <div class="satir sar"><label class="dosya-sec ikincil">JSON dosyası aç<input type="file" accept=".json,application/json" id="dosya"></label>
+        <button type="button" class="ikincil" id="disa-btn">Yedek indir</button>
+        <button type="button" class="ikincil tehlike" id="temizle-btn">Bu cihazdaki ilanları sil</button></div>
+    </section>
+    <div class="satir ekle-alt"><button type="submit">Kaydet</button><button type="button" class="ikincil" id="ayar-kapat">Kapat</button></div>
+  </form>
+</dialog>
+
+<footer class="ayak">
+  <p>İlan bilgileri ilan sahiplerine aittir; her kart orijinal ilana yönlendirir. Değerlendirmeler tahmindir; beğendiğin aracı mutlaka ekspertize götür.</p>
+</footer>
+<script type="module" src="app.js"></script>
+</body></html>

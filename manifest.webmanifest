@@ -1,0 +1,22 @@
+{
+  "name": "İlan Röntgeni",
+  "short_name": "Röntgen",
+  "description": "İkinci el araç ilanlarını analiz et, en sıkıntısızını bul.",
+  "lang": "tr",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#1F5FA8",
+  "theme_color": "#1F5FA8",
+  "icons": [
+    { "src": "ikon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "ikon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "ikon-maskable.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "share_target": {
+    "action": "./paylas",
+    "method": "POST",
+    "enctype": "multipart/form-data",
+    "params": { "title": "title", "text": "text", "url": "url", "files": [{ "name": "gorsel", "accept": ["image/*"] }] }
+  }
+}
